@@ -1352,13 +1352,13 @@ function handleSelection(userChoice) {
         statusClass = 'rep-skipped';
         score += 0;
     } else if (userChoice === currentQuestion.correctAnswer) {
-        pointsEarned = 1;
+        pointsEarned = 2;
         statusClass = 'rep-correct';
-        score += 1;
+        score += 2;
     } else {
-        pointsEarned = -1;
+        pointsEarned = -2;
         statusClass = 'rep-wrong';
-        score -= 1;
+        score -= 2;
     }
 
     // Zapisz ten krok do historii

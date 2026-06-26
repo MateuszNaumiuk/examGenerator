@@ -1249,7 +1249,7 @@ let currentQuestionIndex = 0;
 let score = 0;
 let maxQuestionsRequested = 0;
 let isInstantFeedbackMode = true;
-let userAnswersHistory = []; // Nowa tablica przechowująca historię odpowiedzi użytkownika
+let userAnswersHistory = []; // Tablica przechowująca historię odpowiedzi użytkownika
 
 // Elementy DOM
 const setupScreen = document.getElementById('setup-screen');
@@ -1346,7 +1346,7 @@ function handleSelection(userChoice) {
     let pointsEarned = 0;
     let statusClass = '';
 
-    // Logika kalkulacji i oznaczania statusu odpowiedzi do raportu końcowego
+    // Logika kalkulacji: co 2 punkty (+2 / -2 / 0)
     if (userChoice === null) {
         pointsEarned = 0;
         statusClass = 'rep-skipped';
@@ -1383,10 +1383,10 @@ function handleSelection(userChoice) {
             feedbackElement.innerText = "Pominięto. Pominięcie nie wpływa na punktację (0 pkt).";
             feedbackElement.style.color = "var(--text-muted)";
         } else if (userChoice === currentQuestion.correctAnswer) {
-            feedbackElement.innerText = "Dobrze! (+1 pkt)";
+            feedbackElement.innerText = "Dobrze! (+2 pkt)";
             feedbackElement.style.color = "var(--success)";
         } else {
-            feedbackElement.innerText = `Źle! Prawidłowa odpowiedź to: ${currentQuestion.correctAnswer ? 'TAK' : 'NIE'} (-1 pkt)`;
+            feedbackElement.innerText = `Źle! Prawidłowa odpowiedź to: ${currentQuestion.correctAnswer ? 'TAK' : 'NIE'} (-2 pkt)`;
             feedbackElement.style.color = "var(--danger)";
         }
 
@@ -1428,7 +1428,7 @@ function showScore() {
     userAnswersHistory.forEach((item, index) => {
         let textUserChoice = item.userChoice === null ? 'NIE WIEM' : (item.userChoice ? 'TAK' : 'NIE');
         let textCorrectAnswer = item.correctAnswer ? 'TAK' : 'NIE';
-        let textPoints = item.points === 0 ? '0 pkt' : (item.points > 0 ? '+1 pkt' : '-1 pkt');
+        let textPoints = item.points === 0 ? '0 pkt' : (item.points > 0 ? `+${item.points} pkt` : `${item.points} pkt`);
 
         reportHTML += `
             <div class="report-item ${item.statusClass}">
@@ -1444,7 +1444,7 @@ function showScore() {
     
     scoreContainer.innerHTML = `
         <h2>Wynik końcowy</h2>
-        <p style="color: var(--text-muted); margin-bottom: 10px;">Wylosowanych pytań: ${maxQuestionsRequested}</p>
+        <p style="color: var(--text-muted); margin-bottom: 10px;">Wylosowanych pytań: ${maxQuestionsRequested} (Maksymalnie do zdobycia: ${maxQuestionsRequested * 2} pkt)</p>
         <p style="font-size: 18px;">Twój ogólny bilans punktów:</p>
         <div style="color: ${scoreColor}; font-size: 48px; font-weight: 800; margin: 16px 0;">${score}</div>
         <button onclick="location.reload()" class="btn btn-start" style="margin-top: 16px; margin-bottom: 32px;">Spróbuj ponownie</button>

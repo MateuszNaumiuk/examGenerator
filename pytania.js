@@ -1249,7 +1249,8 @@ let currentQuestionIndex = 0;
 let score = 0;
 let maxQuestionsRequested = 0;
 let isInstantFeedbackMode = true;
-let userAnswersHistory = []; // Tablica przechowująca historię odpowiedzi użytkownika
+let isFlashcardMode = false;
+let userAnswersHistory = [];
 
 // Elementy DOM
 const setupScreen = document.getElementById('setup-screen');
@@ -1259,6 +1260,8 @@ const instantFeedbackCheckbox = document.getElementById('instant-feedback');
 const rangeLabel = document.getElementById('range-label');
 const startButton = document.getElementById('start-btn');
 const previewContainer = document.getElementById('questions-preview');
+const flashStatsWrapper = document.getElementById('flashcard-stats');
+const resetFlashBtn = document.getElementById('reset-flash-btn');
 
 const questionElement = document.getElementById('question');
 const nextButton = document.getElementById('next-btn');
@@ -1271,22 +1274,48 @@ const btnFalse = document.getElementById('btn-false');
 const btnSkip = document.getElementById('btn-skip');
 const actionButtons = [btnTrue, btnFalse, btnSkip];
 
-// Inicjalizacja konfiguracji wejściowej i podglądu
-rangeLabel.innerText = `Ile pytań wylosować? (Dostępnych w bazie: ${allQuestions.length})`;
+// Ładowanie opanowanych pytań z LocalStorage
+let learnedFlashcardIds = JSON.parse(localStorage.getItem('learned_flashcards_ids')) || [];
+
+// Inicjalizacja
+rangeLabel.innerText = `Ile pytań wylosować? (Dostępnych: ${allQuestions.length})`;
 questionCountInput.max = allQuestions.length;
-if(parseInt(questionCountInput.value) > allQuestions.length) {
-    questionCountInput.value = allQuestions.length;
+updateFlashcardsStats();
+renderQuestionsPreview();
+
+function toggleModeUI() {
+    isFlashcardMode = document.getElementById('mode-flashcards').checked;
+    if (isFlashcardMode) {
+        flashStatsWrapper.style.display = 'block';
+        resetFlashBtn.style.display = 'block';
+    } else {
+        flashStatsWrapper.style.display = 'none';
+        resetFlashBtn.style.display = 'none';
+    }
 }
 
-// Renderowanie listy pytań pod spodem
-renderQuestionsPreview();
+function updateFlashcardsStats() {
+    const totalCount = allQuestions.length;
+    const learnedCount = allQuestions.filter(q => learnedFlashcardIds.includes(q.question)).length;
+    const remainingCount = totalCount - learnedCount;
+
+    document.getElementById('flash-rem').innerText = remainingCount;
+    document.getElementById('flash-known').innerText = learnedCount;
+}
+
+resetFlashBtn.addEventListener('click', () => {
+    if(confirm("Czy na pewno chcesz zresetować postęp i przywrócić wszystkie pytania do nauki?")) {
+        learnedFlashcardIds = [];
+        localStorage.setItem('learned_flashcards_ids', JSON.stringify(learnedFlashcardIds));
+        updateFlashcardsStats();
+    }
+});
 
 function renderQuestionsPreview() {
     previewContainer.innerHTML = '';
     allQuestions.forEach((q, index) => {
         const item = document.createElement('div');
         item.classList.add('preview-item');
-        
         item.innerHTML = `
             <div><strong>${index + 1}.</strong> ${q.question}</div>
             <span class="preview-badge">Odpowiedź: ${q.correctAnswer ? 'TAK' : 'NIE'}</span>
@@ -1295,20 +1324,34 @@ function renderQuestionsPreview() {
     });
 }
 
-// Obsługa losowania i startu
+// Start gry
 startButton.addEventListener('click', () => {
+    isFlashcardMode = document.getElementById('mode-flashcards').checked;
+    isInstantFeedbackMode = instantFeedbackCheckbox.checked;
+    userAnswersHistory = [];
+
+    // Ustalanie puli pytań w zależności od wybranego trybu
+    let availablePool = [];
+    if (isFlashcardMode) {
+        availablePool = allQuestions.filter(q => !learnedFlashcardIds.includes(q.question));
+        if (availablePool.length === 0) {
+            alert("Gratulacje! Wszystkie pytania zostały poprawie opanowane. Zresetuj postęp, aby zacząć od nowa.");
+            return;
+        }
+    } else {
+        availablePool = [...allQuestions];
+    }
+
     let count = parseInt(questionCountInput.value);
     if (isNaN(count) || count < 1) count = 1;
-    if (count > allQuestions.length) count = allQuestions.length;
+    if (count > availablePool.length) count = availablePool.length;
     
     maxQuestionsRequested = count;
-    isInstantFeedbackMode = instantFeedbackCheckbox.checked;
-    userAnswersHistory = []; // Czyszczenie historii przed nowym testem
     
-    // Algorytm tasowania (Fisher-Yates) i wycinanie wskazanej liczby pytań
-    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
-    activeQuestions = shuffled.slice(0, maxQuestionsRequested);
-    
+    // Tasowanie i wybór
+    availablePool.sort(() => 0.5 - Math.random());
+    activeQuestions = availablePool.slice(0, maxQuestionsRequested);
+
     setupScreen.style.display = 'none';
     quizScreen.style.display = 'block';
     
@@ -1327,7 +1370,6 @@ function showQuestion() {
     let currentQuestion = activeQuestions[currentQuestionIndex];
     questionElement.innerText = currentQuestion.question;
     
-    // Aktualizacja paska postępu
     const progressPercent = (currentQuestionIndex / maxQuestionsRequested) * 100;
     progressBarFill.style.width = `${progressPercent}%`;
 }
@@ -1346,22 +1388,25 @@ function handleSelection(userChoice) {
     let pointsEarned = 0;
     let statusClass = '';
 
-    // Logika kalkulacji: co 2 punkty (+2 / -2 / 0)
     if (userChoice === null) {
         pointsEarned = 0;
         statusClass = 'rep-skipped';
-        score += 0;
     } else if (userChoice === currentQuestion.correctAnswer) {
         pointsEarned = 2;
         statusClass = 'rep-correct';
         score += 2;
+        
+        // Zapis do opanowanych, jeśli włączony jest tryb Eliminacji (Fiszek)
+        if (isFlashcardMode && !learnedFlashcardIds.includes(currentQuestion.question)) {
+            learnedFlashcardIds.push(currentQuestion.question);
+            localStorage.setItem('learned_flashcards_ids', JSON.stringify(learnedFlashcardIds));
+        }
     } else {
         pointsEarned = -2;
         statusClass = 'rep-wrong';
         score -= 2;
     }
 
-    // Zapisz ten krok do historii
     userAnswersHistory.push({
         question: currentQuestion.question,
         userChoice: userChoice,
@@ -1370,17 +1415,14 @@ function handleSelection(userChoice) {
         statusClass: statusClass
     });
 
-    // Sterowanie interfejsem w zależności od trybu
     if (isInstantFeedbackMode) {
         actionButtons.forEach(button => {
             button.disabled = true;
-            if (button !== document.activeElement) {
-                button.style.opacity = '0.3';
-            }
+            if (button !== document.activeElement) button.style.opacity = '0.3';
         });
 
         if (userChoice === null) {
-            feedbackElement.innerText = "Pominięto. Pominięcie nie wpływa na punktację (0 pkt).";
+            feedbackElement.innerText = "Pominięto (0 pkt).";
             feedbackElement.style.color = "var(--text-muted)";
         } else if (userChoice === currentQuestion.correctAnswer) {
             feedbackElement.innerText = "Dobrze! (+2 pkt)";
@@ -1389,42 +1431,37 @@ function handleSelection(userChoice) {
             feedbackElement.innerText = `Źle! Prawidłowa odpowiedź to: ${currentQuestion.correctAnswer ? 'TAK' : 'NIE'} (-2 pkt)`;
             feedbackElement.style.color = "var(--danger)";
         }
-
         nextButton.style.display = 'block';
     } else {
-        // Tryb Egzaminu automatycznie przeskakuje dalej
-        currentQuestionIndex++;
-        if (currentQuestionIndex < activeQuestions.length) {
-            showQuestion();
-        } else {
-            showScore();
-        }
+        goToNextQuestion();
     }
 }
 
-// Event Listeners dla przycisków wyboru odpowiedzi
-btnTrue.addEventListener('click', () => handleSelection(true));
-btnFalse.addEventListener('click', () => handleSelection(false));
-btnSkip.addEventListener('click', () => handleSelection(null));
-
-nextButton.addEventListener('click', () => {
+function goToNextQuestion() {
     currentQuestionIndex++;
     if (currentQuestionIndex < activeQuestions.length) {
         showQuestion();
     } else {
         showScore();
     }
-});
+}
+
+// Event Listeners dla przycisków
+btnTrue.addEventListener('click', () => handleSelection(true));
+btnFalse.addEventListener('click', () => handleSelection(false));
+btnSkip.addEventListener('click', () => handleSelection(null));
+nextButton.addEventListener('click', goToNextQuestion);
 
 function showScore() {
     progressBarFill.style.width = '100%';
     quizScreen.style.display = 'none';
     scoreContainer.style.display = 'block';
     
-    let scoreColor = score >= 0 ? 'var(--success)' : 'var(--danger)';
+    updateFlashcardsStats();
     
-    // Generowanie raportu tekstowego dla każdego pytania
+    let scoreColor = score >= 0 ? 'var(--success)' : 'var(--danger)';
     let reportHTML = '';
+    
     userAnswersHistory.forEach((item, index) => {
         let textUserChoice = item.userChoice === null ? 'NIE WIEM' : (item.userChoice ? 'TAK' : 'NIE');
         let textCorrectAnswer = item.correctAnswer ? 'TAK' : 'NIE';
@@ -1447,7 +1484,7 @@ function showScore() {
         <p style="color: var(--text-muted); margin-bottom: 10px;">Wylosowanych pytań: ${maxQuestionsRequested} (Maksymalnie do zdobycia: ${maxQuestionsRequested * 2} pkt)</p>
         <p style="font-size: 18px;">Twój ogólny bilans punktów:</p>
         <div style="color: ${scoreColor}; font-size: 48px; font-weight: 800; margin: 16px 0;">${score}</div>
-        <button onclick="location.reload()" class="btn btn-start" style="margin-top: 16px; margin-bottom: 32px;">Spróbuj ponownie</button>
+        <button onclick="location.reload()" class="btn btn-start" style="margin-top: 16px; margin-bottom: 32px;">Wróć do menu</button>
         
         <div class="report-box">
             <h3 style="font-size: 18px; margin-bottom: 16px; text-align: center;">Szczegółowy raport z Twoich odpowiedzi:</h3>

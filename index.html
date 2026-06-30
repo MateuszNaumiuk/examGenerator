@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Egzaminator</title>
+    <title>Egzaminator & Eliminacja</title>
     <style>
         :root {
             --bg-color: #0b0f19;
@@ -39,14 +39,8 @@
             margin: 0 auto;
         }
 
-        .quiz-screen, .score-screen {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .score-screen {
-            max-width: 800px; /* Nieco szerszy ekran podsumowania dla wygodniejszego czytania raportu */
-        }
+        .quiz-screen, .score-screen { max-width: 600px; margin: 0 auto; }
+        .score-screen { max-width: 800px; }
 
         h2 { font-size: 24px; font-weight: 600; margin-bottom: 24px; line-height: 1.5; text-align: center; }
         
@@ -65,24 +59,23 @@
         }
         input[type="number"]:focus { border-color: var(--primary); }
 
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 24px;
-            cursor: pointer;
-            user-select: none;
-        }
-        .checkbox-group input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .checkbox-group label {
-            font-size: 16px;
-            color: var(--text-color);
-            cursor: pointer;
+        .radio-mode-group { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+        .radio-option { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 16px; }
+        .radio-option input { width: 18px; height: 18px; cursor: pointer; }
+
+        .checkbox-group { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; cursor: pointer; user-select: none; }
+        .checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+        .checkbox-group label { font-size: 16px; color: var(--text-color); cursor: pointer; }
+
+        .flashcard-stats-box {
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 6px;
+            max-width: 400px;
+            margin: 0 auto 20px auto;
+            text-align: center;
+            font-size: 14px;
+            border: 1px solid #202e48;
         }
 
         .btn-container { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
@@ -104,6 +97,9 @@
 
         .btn-start { background: var(--primary); max-width: 400px; margin: 0 auto; display: block; }
         .btn-start:hover { background: var(--primary-hover); }
+        .btn-reset-flash { background: #374151; max-width: 400px; margin: 12px auto 0 auto; display: block; font-size: 14px; padding: 10px; }
+        .btn-reset-flash:hover { background: #4b5563; }
+        
         .btn-yes { background: var(--success); }
         .btn-no { background: var(--danger); }
         .btn-dontknow { background: var(--neutral); }
@@ -113,69 +109,19 @@
 
         .feedback { font-size: 16px; font-weight: 600; margin-top: 20px; text-align: center; min-height: 48px; display: flex; align-items: center; justify-content: center; line-height: 1.4; }
         
-        .progress-bar {
-            height: 4px;
-            background: #202e48;
-            border-radius: 2px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: var(--primary);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
+        .progress-bar { height: 4px; background: #202e48; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
 
-        .preview-box {
-            margin-top: 40px;
-            border-top: 1px solid #202e48;
-            padding-top: 24px;
-        }
-        .preview-title {
-            font-size: 18px;
-            color: var(--text-muted);
-            margin-bottom: 16px;
-            text-align: center;
-            font-weight: 600;
-        }
-        .preview-list {
-            max-height: 500px; 
-            overflow-y: auto;
-            padding-right: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+        .preview-box { margin-top: 40px; border-top: 1px solid #202e48; padding-top: 24px; }
+        .preview-title { font-size: 18px; color: var(--text-muted); margin-bottom: 16px; text-align: center; font-weight: 600; }
+        .preview-list { max-height: 500px; overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 12px; }
         .preview-list::-webkit-scrollbar { width: 6px; }
         .preview-list::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 4px; }
         .preview-list::-webkit-scrollbar-thumb { background: #202e48; border-radius: 4px; }
 
-        .preview-item {
-            background: var(--bg-color);
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 15px;
-            line-height: 1.5;
-            border-left: 4px solid #202e48; 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .preview-badge {
-            font-size: 12px;
-            font-weight: 600;
-            padding: 4px 10px;
-            border-radius: 4px;
-            text-transform: uppercase;
-            background: #202e48;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
+        .preview-item { background: var(--bg-color); padding: 16px; border-radius: 8px; font-size: 15px; line-height: 1.5; border-left: 4px solid #202e48; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+        .preview-badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; text-transform: uppercase; background: #202e48; color: var(--text-muted); white-space: nowrap; }
 
-        /* NOWE STYLE DLA RAPORTU KOŃCOWEGO */
         .report-box { margin-top: 32px; border-top: 1px solid #202e48; padding-top: 24px; text-align: left; }
         .report-item { background: var(--bg-color); padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid var(--neutral); }
         .report-item.rep-correct { border-left-color: var(--success); }
@@ -185,7 +131,6 @@
         .report-pts { font-weight: bold; }
         .rep-correct .report-pts { color: var(--success); }
         .rep-wrong .report-pts { color: var(--danger); }
-        .rep-skipped .report-pts { color: var(--text-muted); }
 
         @media (max-width: 600px) {
             body { padding: 12px; }
@@ -197,9 +142,20 @@
 <body>
 
 <div class="quiz-container">
-    <!-- EKRAN KONFIGURACJI -->
     <div id="setup-screen">
-        <h2>Skonfiguruj test</h2>
+        <h2>Skonfiguruj sesję</h2>
+        
+        <div class="radio-mode-group">
+            <label class="radio-option">
+                <input type="radio" name="app-mode" id="mode-exam" checked onchange="toggleModeUI()">
+                <span>Tryb Egzaminu</span>
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="app-mode" id="mode-flashcards" onchange="toggleModeUI()">
+                <span>Tryb Eliminacji (Fiszki)</span>
+            </label>
+        </div>
+
         <div class="setup-group">
             <label id="range-label" for="question-count">Ile pytań wylosować?</label>
             <input type="number" id="question-count" min="1" value="10">
@@ -210,29 +166,34 @@
             <label for="instant-feedback">Pokazuj poprawne odpowiedzi od razu</label>
         </div>
 
-        <button id="start-btn" class="btn btn-start">Rozpocznij naukę</button>
+        <div id="flashcard-stats" class="flashcard-stats-box" style="display: none;">
+            <div>Pozostało do nauki: <strong id="flash-rem" style="color: var(--primary);">0</strong></div>
+            <div style="margin-top: 4px;">Opanowane (usunięte z puli): <strong id="flash-known" style="color: var(--success);">0</strong></div>
+        </div>
 
-        <!-- PODGLĄD WSZYSTKICH PYTAŃ -->
+        <button id="start-btn" class="btn btn-start">Rozpocznij naukę</button>
+        <button id="reset-flash-btn" class="btn btn-reset-flash" style="display: none;">Zresetuj postęp nauki (Przywróć wszystkie)</button>
+
         <div class="preview-box">
             <div class="preview-title">Wszystkie pytania w bazie:</div>
             <div id="questions-preview" class="preview-list"></div>
         </div>
     </div>
 
-    <!-- EKRAN REWIZJI / PYTAŃ -->
     <div id="quiz-screen" class="quiz-screen" style="display: none;">
         <div class="progress-bar"><div id="progress" class="progress-fill"></div></div>
         <h2 id="question">Ładowanie pytania...</h2>
+        
         <div class="btn-container">
             <button id="btn-true" class="btn btn-yes">TAK</button>
             <button id="btn-false" class="btn btn-no">NIE</button>
             <button id="btn-skip" class="btn btn-dontknow">NIE WIEM</button>
         </div>
+
         <div id="feedback-message" class="feedback"></div>
         <button id="next-btn" class="btn">Następne pytanie</button>
     </div>
 
-    <!-- EKRAN WYNIKU -->
     <div id="score-container" class="score-screen" style="display: none;"></div>
 </div>
 
